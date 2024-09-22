@@ -46,26 +46,27 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Set defines for various types of screen
 
-//#define SERIALSCREEN              // For testing and debugging
+#define SERIALSCREEN              // For testing and debugging
+#define TFTSCREEN
 //#define FREERAM                   // Changing filenameLength from 255 to 190
 //#define LARGEBUFFER               // small buffer size used by default to free RAM 
 
 //#define LCD_I2C_ADDR    0x27        // Set the i2c address of your 1602LCD usually 0x27
 //#define LCDSCREEN16x2               // Set if you are using a 1602 LCD screen
 
-#define OLED_SETCONTRAS   0xcf      // Override default value inside Diplay.ino, bigger to increase output current per segment
-#define OLED_ROTATE180
-#define OLED_address   0x3C           //0x3C or 0x3D
-#define OLED1306                      // Set if you are using OLED 1306 display
-    #define OLED1306_128_64         // 128x64 resolution with 8 rows
-    #define OLED1106_1_3            // Use this line as well if you have a 1.3" OLED screen
+// #define OLED_SETCONTRAS   0xcf      // Override default value inside Diplay.ino, bigger to increase output current per segment
+// #define OLED_ROTATE180
+// #define OLED_address   0x3C           //0x3C or 0x3D
+// #define OLED1306                      // Set if you are using OLED 1306 display
+//     #define OLED1306_128_64         // 128x64 resolution with 8 rows
+//     #define OLED1106_1_3            // Use this line as well if you have a 1.3" OLED screen
     //#define video64text32
 //#define btnRoot_AS_PIVOT
-  #define SHOW_DIRPOS
+  // #define SHOW_DIRPOS
       //#define SHOW_STATUS_LCD
       //#define SHOW_DIRNAMES
       
-  #define SHOW_BLOCKPOS_LCD
+  // #define SHOW_BLOCKPOS_LCD
   
 //#define XY                         // use original settings for Oled line 0,1 and status for menu
 #define XY2                      // use double size font wihtout status line for menu

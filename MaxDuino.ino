@@ -5,6 +5,13 @@ const char P_PRODUCT_NAME[] PROGMEM = "new MaxDuino";
 #define XSTR(a) #a
 const char P_VERSION[] PROGMEM = XXSTR(_VERSION);
 
+//----------------------------------------------------------------------------------
+// NICKO
+//----------------------------------------------------------------------------------
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <MCUFRIEND_kbv.h>   // Hardware-specific library
+#include <TouchScreen.h>
+//----------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 // USE CLASS-4 AND CLASS-10 CARDS on this project WITH SDFAT2 FOR BETTER ACCESS SPEED
 // ---------------------------------------------------------------------------------
@@ -253,6 +260,44 @@ byte lastbtn=true;
     }*/
 #endif
 
+#ifdef TFTSCREEN
+
+#include <Fonts/FreeSans9pt7b.h>   // Удалить при нехватке мест
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSerif12pt7b.h>
+
+#include <FreeDefaultFonts.h>
+
+#define BLACK   0x0000
+#define BLUE    0x001F
+#define RED     0xF800
+#define GREEN   0x07E0
+#define CYAN    0x07FF
+#define MAGENTA 0xF81F
+#define YELLOW  0xFFE0
+#define WHITE   0xFFFF
+
+#define ORIENTATION   1
+MCUFRIEND_kbv lcd;
+const int XP=8,XM=A2,YP=A3,YM=9; //ID=0x9341
+// const int TS_LEFT=907,TS_RT=136,TS_TOP=942,TS_BOT=139;
+const int TS_LEFT=110,TS_RT=914,TS_TOP=58,TS_BOT=904;
+
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+TSPoint tp;
+
+#define MINPRESSURE 200
+#define MAXPRESSURE 1000
+// END For touch ceen
+
+uint8_t Orientation = ORIENTATION;
+uint16_t ID, oldcolor, currentcolor;
+int16_t BOXSIZE, BOXLINE;
+// TZX Interface
+bool buttonPlay, buttonStop, buttonPrev, buttonNext;
+
+#endif
+
 void setup() {
 
   #include "pinSetup.h"
@@ -270,8 +315,15 @@ void setup() {
     #endif   
   #endif
   
+  #ifdef TFTSCREEN
+  
+  setupTftDisplay();
+
+  #endif
+
   #ifdef SERIALSCREEN
   Serial.begin(115200);
+  Serial.print(__AVR_ATmega2560__);
   #endif
   
   #ifdef OLED1306
@@ -298,8 +350,10 @@ void setup() {
     P8544_splash(); 
   #endif
 
-  setup_buttons();
- 
+  #ifndef TFTSCREEN
+    setup_buttons();
+  #endif
+
   #ifdef SPLASH_SCREEN
     while (!button_any()){
       delay(100);                // Show logo (OLED) or text (LCD) and remains until a button is pressed.
@@ -362,6 +416,9 @@ void setup() {
 extern unsigned long soft_poweroff_timer;
 
 void loop(void) {
+  #ifdef TFTSCREEN
+  loopTft();
+  #endif
   if(start==1)
   {
     //TZXLoop only runs if a file is playing, and keeps the buffer full.
@@ -369,7 +426,6 @@ void loop(void) {
   } else {
     WRITE_LOW;    
   }
-  
   if((millis()>=scrollTime) && start==0 && (strlen(fileName)> SCREENSIZE)) {
     //Filename scrolling only runs if no file is playing to prevent I2C writes 
     //conflicting with the playback Interrupt
@@ -413,7 +469,6 @@ void loop(void) {
       }    
     }
   #endif
-    
   if (millis() - timeDiff > 50) {   // check switch every 50ms 
     timeDiff = millis();           // get current millisecond count
 
@@ -427,7 +482,7 @@ void loop(void) {
       clear_power_off();
     }
   #endif
-
+  #ifndef TFTSCREEN
     if(button_play()) {
       //Handle Play/Pause button
       if(start==0) {
@@ -457,7 +512,39 @@ void loop(void) {
       
       debounce(button_play);
     }
+  #endif
 
+  #ifdef TFTSCREEN
+    if(buttonPlay) {
+      //Handle Play/Pause button
+      if(start==0) {
+        //If no file is play, start playback
+        playFile();
+        #ifndef NO_MOTOR
+        if (mselectMask){  
+          //Start in pause if Motor Control is selected
+          oldMotorState = 0;
+        }
+        #endif
+        delay(50);
+        
+      } else {
+        //If a file is playing, pause or unpause the file                  
+        if (!pauseOn) {
+          printtext2F(PSTR("Paused  "),0);
+          jblks =1; 
+          firstBlockPause = true;
+        } else  {
+          printtext2F(PSTR("Playing      "),0);
+          currpct=100;
+          firstBlockPause = false;      
+        }
+        pauseOn = !pauseOn;
+      }
+      
+    }
+  #endif
+  
   #ifdef ONPAUSE_POLCHG
     if(button_root() && start==1 && pauseOn 
                                         #ifdef btnRoot_AS_PIVOT   
@@ -690,6 +777,7 @@ void loop(void) {
     #endif
   #endif // BLOCKMODE
 
+  #ifndef TFTSCREEN
   if(button_up() && start==0
                         #ifdef btnRoot_AS_PIVOT
                               && !button_root()
@@ -705,6 +793,24 @@ void loop(void) {
     upFile();
     debouncemax(button_up);
   }
+  #endif
+
+#ifdef TFTSCREEN
+  if(buttonPrev && start==0
+                        #ifdef btnRoot_AS_PIVOT
+                              && !button_root()
+                        #endif
+                              ){                         // up dir sequential search                                           
+
+    #if (SPLASH_SCREEN && TIMEOUT_RESET)
+      timeout_reset = TIMEOUT_RESET;
+    #endif
+    //Move up a file in the directory
+    scrollTime=millis()+scrollWait;
+    scrollPos=0;
+    upFile();
+  }
+  #endif
 
   #ifdef btnRoot_AS_PIVOT
     if(button_up() && start==0 && button_root()) {      // up dir half-interval search
@@ -813,6 +919,7 @@ void loop(void) {
     }
   #endif
 
+  #ifndef TFTSCREEMN
   if(button_down() && start==0
                         #ifdef btnRoot_AS_PIVOT
                                 && !button_root()
@@ -827,6 +934,23 @@ void loop(void) {
     downFile();
     debouncemax(button_down);
   }
+  #endif
+
+  #ifdef TFTSCREEMN
+  if(buttonNext && start==0
+                        #ifdef btnRoot_AS_PIVOT
+                                && !button_root()
+                        #endif
+                              ){                    // down dir sequential search                                             
+    #if (SPLASH_SCREEN && TIMEOUT_RESET)
+      timeout_reset = TIMEOUT_RESET;
+    #endif
+    //Move down a file in the directory
+    scrollTime=millis()+scrollWait;
+    scrollPos=0;
+    downFile();
+  }
+  #endif
 
   #ifdef btnRoot_AS_PIVOT
     if(button_down() && start==0 && button_root()) {              // down dir half-interval search
@@ -972,6 +1096,10 @@ void seekFile() {
   scrollText(fileName);
   #ifdef SERIALSCREEN
     Serial.println(fileName);
+  #endif
+  #ifdef TFTSCREEN
+      lcd.fillRect(0, 10, 200, 20, BLACK);
+      showmsgSTR(0, 10, 2, NULL, fileName);
   #endif
 }
 
@@ -1200,6 +1328,12 @@ void printtext2F(const char* text, int l) {  //Print text to screen.
   Serial.println(reinterpret_cast <const __FlashStringHelper *> (text));
   #endif
   
+  #ifdef TFTSCREEN
+      Serial.println(l);
+      lcd.fillRect(0, (l+1)*20, 200, 20, BLACK);
+      showmsgSTR(0, (l+1)*20, 2, NULL, (const __FlashStringHelper*)text);
+  #endif
+
   #ifdef LCDSCREEN16x2
     lcd.setCursor(0,l);
     char x = 0;
@@ -1239,6 +1373,12 @@ void printtextF(const char* text, int l) {  //Print text to screen.
     Serial.println(reinterpret_cast <const __FlashStringHelper *> (text));
   #endif
   
+  #ifdef TFTSCREEN
+    Serial.println(l);
+    lcd.fillRect(0, (l+1)*10, 200, 20, BLACK);
+    showmsgSTR(0, (l+1)*10, 2, NULL, (const __FlashStringHelper*)text);
+  #endif
+
   #ifdef LCDSCREEN16x2
     lcd.setCursor(0,l);
     char x = 0;
@@ -1290,6 +1430,12 @@ void printtext(char* text, int l) {  //Print text to screen.
     Serial.println(text);
   #endif
   
+  #ifdef TFTSCREEN
+
+    showmsgSTR(0, l*10, 1, NULL, text);
+
+  #endif
+
   #ifdef LCDSCREEN16x2
     lcd.setCursor(0,l);
     char ch;
@@ -1702,3 +1848,124 @@ void GetFileName(uint16_t pos)
   }
   entry.close();
 }
+
+#ifdef TFTSCREEN
+void setupTftDisplay(void)
+{
+    
+    uint16_t ID = lcd.readID();
+    if (ID == 0xD3D3) ID = 0x9481; //force ID if write-only display
+    lcd.begin(ID);
+    lcd.setRotation(1);
+    lcd.fillScreen(BLACK);
+    lcd.setTextColor(WHITE);
+    BOXSIZE = lcd.width() / 4;
+    BOXLINE = lcd.height() - BOXSIZE;
+    lcd.setTextColor(BLACK);
+
+    lcd.fillRect(0, BOXLINE, BOXSIZE, BOXSIZE, CYAN);
+    showmsgSTR(15, BOXLINE + 45, 1, NULL, "PREV");
+    lcd.fillRect(BOXSIZE, BOXLINE, BOXSIZE, BOXSIZE, GREEN);
+    showmsgSTR(BOXSIZE + 15 , BOXLINE + 45, 1, NULL, "PLAY");
+    lcd.fillRect(BOXSIZE * 2, BOXLINE, BOXSIZE, BOXSIZE, RED);
+    showmsgSTR((BOXSIZE * 2) + 15, BOXLINE + 45, 1, NULL, "STOP");
+    lcd.fillRect(BOXSIZE * 3, BOXLINE, BOXSIZE, BOXSIZE, YELLOW);
+    showmsgSTR((BOXSIZE * 3) + 15, BOXLINE + 45, 1, NULL, "NEXT");
+
+    lcd.drawRect(0, BOXLINE, BOXSIZE, BOXSIZE, WHITE);
+    currentcolor = RED;
+    delay(1000);
+}
+
+void showmsgSTR(int x, int y, int sz, const GFXfont *f, const __FlashStringHelper *msg)
+{
+    lcd.setTextColor(WHITE);
+    lcd.setFont(f);
+    lcd.setCursor(x, y);
+    lcd.setTextSize(sz);
+    lcd.print(msg);
+}
+
+void showmsgSTR(int x, int y, int sz, const GFXfont *f, const char *msg)
+{
+    lcd.setTextColor(WHITE);
+    lcd.setFont(f);
+    lcd.setCursor(x, y);
+    lcd.setTextSize(sz);
+    lcd.print(msg);
+}
+
+void loopTft (void) {
+  // put your main code here, to run repeatedly:
+  
+  uint16_t xpos, ypos;  //screen coordinates
+  tp = ts.getPoint();   //tp.x, tp.y are ADC values
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+  buttonPlay = false;
+  buttonStop = false;
+  buttonPrev = false;
+  buttonNext = false;
+
+  if (tp.z > MINPRESSURE && tp.z < MAXPRESSURE) {
+        // most mcufriend have touch (with icons) that extends below the TFT
+        // screens without icons need to reserve a space for "erase"
+        // scale the ADC values from ts.getPoint() to screen values e.g. 0-239
+        //
+        // Calibration is true for PORTRAIT. tp.y is always long dimension 
+        // map to your current pixel orientation
+        xpos = map(tp.y, TS_TOP, TS_BOT, 0, 320);
+        ypos = map(tp.x, TS_RT, TS_LEFT, 0, 240);
+
+  }
+  if (ypos > BOXLINE && tp.z > MINPRESSURE && tp.z < MAXPRESSURE) {               //draw white border on selected color box
+            oldcolor = currentcolor;
+
+            if (xpos < BOXSIZE) {
+                currentcolor = CYAN;
+                lcd.drawRect(0, BOXLINE, BOXSIZE, BOXSIZE, WHITE);
+                buttonPrev = true;
+            } else if (xpos < BOXSIZE * 2) {
+                currentcolor = GREEN;
+                lcd.drawRect(BOXSIZE, BOXLINE, BOXSIZE, BOXSIZE, WHITE);
+                buttonPlay = true;
+            } else if (xpos < BOXSIZE * 3) {
+                currentcolor = RED;
+                lcd.drawRect(BOXSIZE * 2, BOXLINE, BOXSIZE, BOXSIZE, WHITE);
+                buttonStop = true;
+            } else if (xpos < BOXSIZE * 4) {
+                currentcolor = YELLOW;
+                lcd.drawRect(BOXSIZE * 3, BOXLINE, BOXSIZE, BOXSIZE, WHITE);
+                buttonNext = true;
+            }
+
+            if (oldcolor != currentcolor) { //rub out the previous white border
+                if (oldcolor == CYAN) {
+                  lcd.fillRect(0, BOXLINE, BOXSIZE, BOXSIZE, CYAN);
+                  showmsgSTR(15, BOXLINE + 45, 1, NULL, "PREV");}
+                if (oldcolor == GREEN) {
+                  lcd.fillRect(BOXSIZE, BOXLINE, BOXSIZE, BOXSIZE, GREEN);
+                  showmsgSTR(BOXSIZE + 15, BOXLINE + 45, 1, NULL, "PLAY"); }
+                if (oldcolor == RED) {
+                  lcd.fillRect(BOXSIZE * 2, BOXLINE, BOXSIZE, BOXSIZE, RED);
+                  showmsgSTR((BOXSIZE * 2) + 15, BOXLINE + 45, 1, NULL, "STOP"); }
+                if (oldcolor == YELLOW) { 
+                  lcd.fillRect(BOXSIZE * 3, BOXLINE, BOXSIZE, BOXSIZE, YELLOW);
+                  showmsgSTR((BOXSIZE * 3) + 15, BOXLINE + 45, 1, NULL, "NEXT"); }
+
+                lcd.fillRect(20, 45, 100, 80, BLACK);
+                lcd.setTextColor(WHITE);  
+            #ifdef SERIALSCREEN
+                Serial.println(buttonPlay);
+                Serial.println(buttonStop);
+                Serial.println(buttonPrev); 
+                Serial.println(buttonNext);
+            #endif
+                showmsgSTR(20, 60, 1, NULL, ("Play = " + String(buttonPlay)).c_str());
+                showmsgSTR(20, 80, 1, NULL, ("Stop = " + String(buttonStop)).c_str());
+                showmsgSTR(20, 100, 1, NULL, ("Prev = " + String(buttonPrev)).c_str());
+                showmsgSTR(20, 120, 1, NULL, ("Next = " + String(buttonNext)).c_str());
+            }
+}
+}
+#endif
