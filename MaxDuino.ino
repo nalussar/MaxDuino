@@ -254,24 +254,28 @@ byte lastbtn=true;
 #endif
 
 void setup() {
-
   #include "pinSetup.h"
   pinMode(chipSelect, OUTPUT);      //Setup SD card chipselect pin
+  
 
+  
   #ifdef LCDSCREEN16x2
     lcd.init();                     //Initialise LCD (16x2 type)
-    lcd.backlight();
-    lcd.clear();
-    #if (SPLASH_SCREEN)
-      lcd.setCursor(0,0);
-      lcd.print(reinterpret_cast <const __FlashStringHelper *>P_PRODUCT_NAME); // Set the text at the initialization for LCD Screen (Line 1)
-      lcd.setCursor(0,1); 
-      lcd.print(reinterpret_cast <const __FlashStringHelper *>P_VERSION); // Set the text at the initialization for LCD Screen (Line 2)
-    #endif   
+    // lcd.backlight();
+    // lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("TEST");
+    // #if (SPLASH_SCREEN)
+    //   lcd.setCursor(0,0);
+    //   lcd.print(reinterpret_cast <const __FlashStringHelper *>P_PRODUCT_NAME); // Set the text at the initialization for LCD Screen (Line 1)
+    //   lcd.setCursor(0,1); 
+    //   lcd.print(reinterpret_cast <const __FlashStringHelper *>P_VERSION); // Set the text at the initialization for LCD Screen (Line 2)
+    // #endif   
   #endif
   
   #ifdef SERIALSCREEN
-  Serial.begin(115200);
+    Serial.begin(115200);
+    Serial.println(P_PRODUCT_NAME);
   #endif
   
   #ifdef OLED1306

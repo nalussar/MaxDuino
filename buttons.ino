@@ -11,7 +11,7 @@ void setup_buttons(void)
   // For some devices, the resolution is 10 bits by default (which is why we set other platforms to also use 10 bits
   // so that all the same code works on all the devices)
   // ESP8266 defaults to 10 bits anyway
-  analogReadResolution(10);
+  // analogReadResolution(10);
   #endif
 
   #if defined(ESP32)

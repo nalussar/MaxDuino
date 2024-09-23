@@ -173,14 +173,16 @@
 #define btnMotor      2
 
 #else
-  const byte chipSelect = 10;          //Sd card chip select pin
-  
-  #define btnPlay       17            //Play Button
-  #define btnStop       16            //Stop Button
-  #define btnUp         15            //Up button
-  #define btnDown       14            //Down button
-  #define btnMotor      6             //Motor Sense (connect pin to gnd to play, NC for pause)
-  #define btnRoot       7             //Return to SD card root
+  #define chipSelect    10
+  #define BUTTON_ADC
+  #define btnADC        A0 
+  #define NO_MOTOR    // because no spare gpio
+  // #define btnPlay       17            //Play Button
+  // #define btnStop       16            //Stop Button
+  // #define btnUp         15            //Up button
+  // #define btnDown       14            //Down button
+  // #define btnMotor      6             //Motor Sense (connect pin to gnd to play, NC for pause)
+  // #define btnRoot       7             //Return to SD card root
 #endif
 
 
@@ -341,27 +343,27 @@
 #else  //__AVR_ATmega328P__
   //pinMode(btnPlay,INPUT_PULLUP);  // Not needed, default is INPUT (0)
 //  digitalWrite(btnPlay,HIGH); // Wrte for INPUT_PULLUP if input type is only INPUT
-  PORTC |= _BV(3);
+//   PORTC |= _BV(3);
   
-  //pinMode(btnStop,INPUT_PULLUP);  // Not needed, default is INPUT (0)
-//  digitalWrite(btnStop,HIGH);
-  PORTC |= _BV(2);
+//   //pinMode(btnStop,INPUT_PULLUP);  // Not needed, default is INPUT (0)
+// //  digitalWrite(btnStop,HIGH);
+//   PORTC |= _BV(2);
 
-  //pinMode(btnUp,INPUT_PULLUP);  // Not needed, default is INPUT (0)
-//  digitalWrite(btnUp,HIGH);
-  PORTC |= _BV(1);
+//   //pinMode(btnUp,INPUT_PULLUP);  // Not needed, default is INPUT (0)
+// //  digitalWrite(btnUp,HIGH);
+//   PORTC |= _BV(1);
 
-  //pinMode(btnDown,INPUT_PULLUP);  // Not needed, default is INPUT (0)
-//  digitalWrite(btnDown,HIGH);
-  PORTC |= _BV(0);
+//   //pinMode(btnDown,INPUT_PULLUP);  // Not needed, default is INPUT (0)
+// //  digitalWrite(btnDown,HIGH);
+//   PORTC |= _BV(0);
 
-  //pinMode(btnMotor, INPUT_PULLUP);  // Not needed, default is INPUT (0)
-//  digitalWrite(btnMotor,HIGH);
-  PORTD |= _BV(btnMotor);
+//   //pinMode(btnMotor, INPUT_PULLUP);  // Not needed, default is INPUT (0)
+// //  digitalWrite(btnMotor,HIGH);
+//   PORTD |= _BV(btnMotor);
   
-  //pinMode(btnRoot, INPUT_PULLUP);  // Not needed, default is INPUT (0)
-//  digitalWrite(btnRoot, HIGH); 
-  PORTD |= _BV(btnRoot);
+//   //pinMode(btnRoot, INPUT_PULLUP);  // Not needed, default is INPUT (0)
+// //  digitalWrite(btnRoot, HIGH); 
+//   PORTD |= _BV(btnRoot);
 #endif
 
 #ifdef BUTTON_ADC
